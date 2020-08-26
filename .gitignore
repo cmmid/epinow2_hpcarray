@@ -1,0 +1,6 @@
+local.makefile
+*.rds
+*.csv
+*.slurm
+
+.Rproj.user/*
