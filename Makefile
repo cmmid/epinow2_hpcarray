@@ -41,4 +41,4 @@ ${OUTDIR}/jobs.slurm: slurm.R ${SLURMTEMP} ${INDIR}/iso3.csv | ${OUTDIR}
 
 setup: ${INDIR}/cases.rds ${INDIR}/iso3.csv ${INDIR}/interventions.rds ${OUTDIR}/jobs.slurm
 
-test: ${OUTDIR}/KEN/result.rds ${OUTDIR}/ZWE/result.rds
+test: ${OUTDIR}/KEN/result.rds ${OUTDIR}/GHA/result.rds
