@@ -1,7 +1,7 @@
 require(EpiNow2)
 require(data.table)
 
-.debug <- "BDI"
+.debug <- "ESH"
 .args <- if (interactive()) sprintf(c(
   "cases.rds", "rt_bounds.rds", "%s", "res/%s/result.rds"
 ), .debug) else commandArgs(trailingOnly = TRUE)
@@ -34,7 +34,7 @@ est.window <- 30
 crs <- 4
 smps <- 1e4
 
-if (length(bounds$del) & (bounds$del > 0)) {
+if (length(bounds$del) && (bounds$del > 0)) {
   
   reported_cases <- readRDS(.args[1])[
     (iso3 == iso) & (date <= bounds$interventionend + est.window)
