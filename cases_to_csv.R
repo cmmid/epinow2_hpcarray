@@ -5,7 +5,7 @@ require(data.table)
 ) else commandArgs(trailingOnly = TRUE)
 
 target <- tail(.args, 1)
-res <- readRDS(.args[1])[,.(iso3=unique(iso3))]
+res <- readRDS(.args[1])[, .(iso3=unique(iso3))]
 
 record <- if (file.exists(target)) {
   ref <- fread(target)

@@ -12,25 +12,41 @@ INDIR ?= ~/Dropbox/input_rt_reports
 # where are we putting analysis outputs?
 OUTDIR ?= ~/Dropbox/output_rt_reports
 
+${INDIR} ${OUTDIR}:
+	mkdir -p $@
+
 # convenience definitions; note that `=` is lazy assignment
 # so $^, $*, $@, etc not bound until executing a target
-R = Rscript $^ $@
-Rpipe = Rscript $^ $| $@
-Rstar = Rscript $^ $* $@
+R = Rscript $(filter-out FORCE,$^) $@
+Rpipe = Rscript $(filter-out FORCE,$^) $| $@
+Rstar = Rscript $(filter-out FORCE,$^) $* $@
 
 # a prerequisite that will always be unsatisfied
 FORCE:
 
-${INDIR}/cases.rds: get_ecdc_cases.R | FORCE
+${INDIR}/cases.rds: get_ecdc_cases.R
 	${R}
 
 ${INDIR}/iso3.csv: cases_to_csv.R ${INDIR}/cases.rds
 	${R}
 
-${INDIR}/interventions.rds: interventions.R
+WHOURL := https://www.who.int/docs/default-source/documents/phsm/20200722-phsm-who-int.zip
+
+# requires python tool xlsx2csv
+${INDIR}/rawinterventions.csv:
+	curl ${WHOURL} --output tmp.zip
+	unzip tmp.zip *.xlsx
+	mv *.xlsx tmp.xlsx
+	xlsx2csv tmp.xlsx > $@
+	rm tmp.zip tmp.xlsx
+
+${INDIR}/interventions.rds: interventions.R ${INDIR}/rawinterventions.csv
 	${R}
 
-${OUTDIR}/%/result.rds: compute.R ${INDIR}/cases.rds
+${INDIR}/rt_bounds.rds: rt_bounds.R $(addprefix ${INDIR}/,cases.rds interventions.rds)
+	${R}
+
+${OUTDIR}/%/result.rds: compute.R $(addprefix ${INDIR}/,cases.rds rt_bounds.rds)
 	mkdir -p $(@D)
 	${Rstar}
 
@@ -39,6 +55,8 @@ SLURMTEMP ?= slurm.template
 ${OUTDIR}/jobs.slurm: slurm.R ${SLURMTEMP} ${INDIR}/iso3.csv | ${OUTDIR}
 	${Rpipe}
 
-setup: ${INDIR}/cases.rds ${INDIR}/iso3.csv ${INDIR}/interventions.rds ${OUTDIR}/jobs.slurm
+setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv jobs.slurm rawinterventions.csv interventions.rds rt_bounds.rds)
 
-test: ${OUTDIR}/KEN/result.rds ${OUTDIR}/GHA/result.rds
+ALLISOS ?= $(shell cat ${INDIR}/iso3.csv)
+
+test: $(patsubst %,${OUTDIR}/%/result.rds,${ALLISOS})
