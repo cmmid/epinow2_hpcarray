@@ -1,4 +1,5 @@
 require(data.table)
+require(lubridate)
 
 .args <- if (interactive()) c(
   "rawinterventions.csv", "interventions.rds"
@@ -25,23 +26,15 @@ res <- first.days[,
   keyby=iso3
 ]
 
-# res <- data.table(
-#   iso3 = "KEN",
-#   dayeff = as.Date("2020-03-31")
-# )
+# presumed delay of intervention impact
+offset <- 0
 # days to censor around intervention for estimation
 window <- 7
 # days of intervention period to consider
 est.window <- 30
 
-res[,
-  c("start", "end", "periodend") := { tmp <- outer(
-    dayeff,
-    c(-window/2, window/2, window/2+est.window),
-      "+"
-    )
-    .(tmp[,1], tmp[,2], tmp[,3])
-  }
-]
+res[, start := round_date(dayeff + offset, "day") ]
+res[, end := start + window ] # ceiling date
+res[, periodend := end + est.window ]
 
 saveRDS(res, tail(.args, 1))

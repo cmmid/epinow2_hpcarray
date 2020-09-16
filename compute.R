@@ -1,9 +1,9 @@
 require(EpiNow2)
 require(data.table)
 
-.debug <- "ESH"
+.debug <- "KEN"
 .args <- if (interactive()) sprintf(c(
-  "cases.rds", "rt_bounds.rds", "%s", "res/%s/result.rds"
+  "cases.rds", "rt_bounds.rds", "%s", "2", "res/%s/result.rds"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 iso <- .args[3]
@@ -31,21 +31,24 @@ reporting_delay <- list(
 
 # additional time to include for algorithm
 est.window <- 30
-crs <- 4
+crs <- as.integer(.args[4])
 smps <- 1e4
 
-if (length(bounds$del) && (bounds$del > 0)) {
+if (length(bounds$del) && !is.na(bounds$del) && (bounds$del > 0)) {
   
   reported_cases <- readRDS(.args[1])[
     (iso3 == iso) & (date <= bounds$interventionend + est.window)
   ][, .(date, confirm = cases )]
   
+  reported_cases[, era := fifelse(bounds$del > 7, "pre", "short")  ]
+  reported_cases[date >= bounds$transitionstart, era := "window" ]
+  reported_cases[date > bounds$transitionend, era := "post" ]
+  reported_cases[date >= bounds$interventionend, era := "censor" ]
+  
+  
   # Add breakpoints
   reported_cases[,
-    breakpoint := between(
-     date,
-     bounds$transitionstart, bounds$transitionend
-    ) | (date >= bounds$interventionend)
+    breakpoint := era %in% c("window", "censor")
   ]
   
   # Run model with breakpoints but otherwise static Rt
@@ -58,20 +61,24 @@ if (length(bounds$del) && (bounds$del > 0)) {
     delays = list(incubation_period, reporting_delay),
     samples = smps, warmup = smps*0.1, cores = crs,
     chains = crs, estimate_breakpoints = TRUE, fixed = TRUE, horizon = 0,
-    verbose = TRUE, return_fit = TRUE
+    verbose = FALSE, return_fit = TRUE
   )$samples[variable == "R", .(value), by=.(sample, date)]
   
   results <- fbkp[
-    (abs(date - (bounds$transitionstart-1)) < 0.5) |
-    (abs(date - (bounds$transitionend+1)) < 0.5)
-  ][,{
+    between(date, bounds$transitionstart-1, bounds$transitionend+1)
+  ][, {
     qs <- quantile(value, probs = c(0.025, 0.25, 0.5, 0.75, 0.975))
     names(qs) <- c("lo.lo","lo","med","hi","hi.hi")
     as.list(qs)
-  }, keyby = .(date)]
+  }, keyby = .(date)][
+    reported_cases[,
+      .(date, ccases = cumsum(confirm), era)
+    ][between(date, bounds$transitionstart-1, bounds$transitionend+1)],
+    on=.(date)
+  ]
   
-  results[order(date), era := c(ifelse(bounds$del > 7,"pre","weak") ,"post")]
 } else {
+  
   reported_cases <- readRDS(.args[1])[
     (iso3 == iso)
   ][1:est.window][, .(date, confirm = cases, breakpoint = FALSE )]
@@ -82,7 +89,7 @@ if (length(bounds$del) && (bounds$del > 0)) {
     delays = list(incubation_period, reporting_delay),
     samples = smps, warmup = smps*0.1, cores = crs,
     chains = crs, fixed = TRUE, horizon = 0,
-    verbose = TRUE, return_fit = TRUE
+    verbose = FALSE, return_fit = TRUE
   )$samples[variable == "R", .(value), by=.(sample, date)]
 
   results <- fbkp[
@@ -91,9 +98,12 @@ if (length(bounds$del) && (bounds$del > 0)) {
     qs <- quantile(value, probs = c(0.025, 0.25, 0.5, 0.75, 0.975))
     names(qs) <- c("lo.lo","lo","med","hi","hi.hi")
     as.list(qs)
-  }, keyby = .(date)]
-  
-  results[order(date), era := "post" ]
+  }, keyby = .(date)][
+    reported_cases[,
+      .(date, ccases = cumsum(confirm), era)
+    ][date == bounds$interventionend],
+    on=.(date)
+  ]
   
 }
 

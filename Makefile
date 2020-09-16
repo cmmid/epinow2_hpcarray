@@ -11,6 +11,8 @@ default: test
 INDIR ?= ~/Dropbox/input_rt_reports
 # where are we putting analysis outputs?
 OUTDIR ?= ~/Dropbox/output_rt_reports
+# how many cores available?
+NCORES ?= 3
 
 ${INDIR} ${OUTDIR}:
 	mkdir -p $@
@@ -48,12 +50,17 @@ ${INDIR}/rt_bounds.rds: rt_bounds.R $(addprefix ${INDIR}/,cases.rds intervention
 
 ${OUTDIR}/%/result.rds: compute.R $(addprefix ${INDIR}/,cases.rds rt_bounds.rds)
 	mkdir -p $(@D)
-	${Rstar}
+	Rscript $(filter-out FORCE,$^) $* ${NCORES} $@
 
 SLURMTEMP ?= slurm.template
 
 ${OUTDIR}/jobs.slurm: slurm.R ${SLURMTEMP} ${INDIR}/iso3.csv | ${OUTDIR}
 	${Rpipe}
+
+${OUTDIR}/SI_fig_int_distro.png: SI_fig_int_distro.R $(addprefix ${INDIR}/,interventions.rds cases.rds)
+	${R}
+
+sifigs: ${OUTDIR}/SI_fig_int_distro.png
 
 setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv jobs.slurm rawinterventions.csv interventions.rds rt_bounds.rds)
 
