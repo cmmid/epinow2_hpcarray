@@ -13,7 +13,7 @@ res[, date := as.Date(dateRep, format = "%d/%m/%Y") ]
 final <- res[countryterritoryCode != "",
   .(cases, deaths),
   keyby=.(continent = continentExp, iso3=countryterritoryCode, date)
-]
+][,.SD[which.max(cases>0):.N],keyby=iso3]
 
 if (final[, any(cases < 0)]) {
   warning(sprintf(

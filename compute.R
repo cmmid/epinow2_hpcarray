@@ -1,7 +1,7 @@
 require(EpiNow2)
 require(data.table)
 
-.debug <- "KEN"
+.debug <- "SWE"
 .args <- if (interactive()) sprintf(c(
   "cases.rds", "rt_bounds.rds", "%s", "2", "res/%s/result.rds"
 ), .debug) else commandArgs(trailingOnly = TRUE)
@@ -10,7 +10,7 @@ iso <- .args[3]
 
 bounds <- as.list(readRDS(.args[2])[
   iso3 == iso
-][, .SD ])
+])
 
 # Set up example generation time
 generation_time <- as.list(EpiNow2::covid_generation_times[1,
@@ -81,8 +81,12 @@ if (length(bounds$del) && !is.na(bounds$del) && (bounds$del > 0)) {
   
   reported_cases <- readRDS(.args[1])[
     (iso3 == iso)
-  ][1:est.window][, .(date, confirm = cases, breakpoint = FALSE )]
-  
+  ][1:(2*est.window)][, .(date, confirm = cases, breakpoint = FALSE )]
+ 
+  reported_cases[, era := "censor" ]
+  reported_cases[1:est.window, era := "post" ]
+
+   
   fbkp <- estimate_infections(
     reported_cases, family = "negbin",
     generation_time = generation_time,
@@ -92,16 +96,18 @@ if (length(bounds$del) && !is.na(bounds$del) && (bounds$del > 0)) {
     verbose = FALSE, return_fit = TRUE
   )$samples[variable == "R", .(value), by=.(sample, date)]
 
+  ref <- reported_cases[,
+    .(date, ccases = cumsum(confirm), era)
+  ][est.window]
+  
   results <- fbkp[
-    date == min(date)
+    date == ref$date
   ][,{
     qs <- quantile(value, probs = c(0.025, 0.25, 0.5, 0.75, 0.975))
     names(qs) <- c("lo.lo","lo","med","hi","hi.hi")
     as.list(qs)
   }, keyby = .(date)][
-    reported_cases[,
-      .(date, ccases = cumsum(confirm), era)
-    ][date == bounds$interventionend],
+    ref,
     on=.(date)
   ]
   
