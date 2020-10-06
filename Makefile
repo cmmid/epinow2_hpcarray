@@ -11,6 +11,7 @@ default: test
 INDIR ?= ~/Dropbox/input_rt_reports
 # where are we putting analysis outputs?
 OUTDIR ?= ~/Dropbox/output_rt_reports
+OTHDIR ?= ~/Dropbox/covidm_reports/hpc_inputs
 # how many cores available?
 NCORES ?= 3
 
@@ -51,6 +52,9 @@ ${INDIR}/rt_bounds.rds: rt_bounds.R $(addprefix ${INDIR}/,cases.rds intervention
 ${OUTDIR}/%/result.rds: compute.R $(addprefix ${INDIR}/,cases.rds rt_bounds.rds)
 	mkdir -p $(@D)
 	Rscript $(filter-out FORCE,$^) $* ${NCORES} $@
+
+${OUTDIR}/fits/%.rds: param_fit.R ${OUTDIR}/%/result.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/%/contact_matrices.rds ${OTHDIR}/covidm_fit_yu.qs
+	${R}
 
 SLURMTEMP ?= slurm.template
 
