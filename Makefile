@@ -53,6 +53,9 @@ ${OUTDIR}/%/result.rds: compute.R $(addprefix ${INDIR}/,cases.rds rt_bounds.rds)
 	mkdir -p $(@D)
 	Rscript $(filter-out FORCE,$^) $* ${NCORES} $@
 
+${OUTDIR}/eligible.csv: params_filter.R | ${OUTDIR}
+	Rscript $< $| $@
+
 ${OUTDIR}/fits/%.rds: param_fit.R ${OUTDIR}/%/result.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/%/contact_matrices.rds ${OTHDIR}/covidm_fit_yu.qs
 	${R}
 
