@@ -176,11 +176,11 @@ cm_calc_R0_extended <- function(
 
 scens <- data.table(
   expand.grid(
-    home = c("none", "some"),
+#    home = c("none", "some"),
     work = c("small", "large"),
     school = c("small", "large"),
     other = c("small", "large"),
-    symptrans = c("none","some"),
+#    symptrans = c("none","some"),
     # qtile = 1:length(preR0),
     stringsAsFactors = FALSE
   )
@@ -188,14 +188,17 @@ scens <- data.table(
 #' none = 0 reduction
 #' small < large
 
+fillargs <- function(ps) {
+  names(ps)[1:2] <- c("large", "symptfact")
+  return(modifyList(
+    list(smallfact = 0), as.list(ps)
+  ))
+}
+
 R0_recalc <- function(ps, umul, poppars, ls_cats) {
-  names(ps)[1] <- "large"
-  arglist <- modifyList(
-    list(smallfact = 0, homefact = 0, symptfact = 0),
-    as.list(ps)
-  )
+  arglist <- fillargs(ps)
   cmr <- rep(0, 4)
-  cmr[1] <- arglist$large*arglist$home
+#  cmr[1] <- arglist$large*arglist$home
   cmr[1+which(ls_cats == "large")] <- arglist$large
   cmr[1+which(ls_cats == "small")] <- arglist$large*arglist$smallfact
   cm_calc_R0_extended(
@@ -205,14 +208,14 @@ R0_recalc <- function(ps, umul, poppars, ls_cats) {
 }
 
 cost_fun <- function(ps, ls_cats) {
-  names(ps)[1] <- "large"
-  arglist <- modifyList(
-    list(smallfact = 0, homefact = 0, symptfact = 0),
-    as.list(ps)
-  )
+  arglist <- fillargs(ps)
   numlarge <- sum(ls_cats == "large")
   return(
-    10-(numlarge*log(1-arglist$large) + (3-numlarge)*log(1-arglist$smallfact) + log(1-arglist$symptfact) + log(1-arglist$homefact))
+    10-(
+      numlarge*log(1-arglist$large) +
+      (3-numlarge)*log(1-arglist$large*arglist$smallfact) +
+      log(1-arglist$large*arglist$symptfact)
+    )
   )
 }
 
@@ -235,22 +238,9 @@ fitfun <- function(poppars, preR, postR, scenarios) {
   ured <- preR / cm_calc_R0_extended(poppars)
   
   scenarios[,{
-    optpars <- c(large = refbaseline)
+    optpars <- c(large = refbaseline, symptfact = factbaseline)
     if ("small" %in% c(work, school, other)) {
       optpars <- c(optpars, smallfact = factbaseline)
-      if (home == "none") {
-          if (symptrans != "none") optpars <- c(optpars, symptfact = factbaseline)
-      } else {
-        optpars <- c(optpars, homefact = factbaseline)
-        if (symptrans != "none") optpars <- c(optpars, symptfact = factbaseline)
-      }
-    } else {
-      if (home == "none") {
-        if (symptrans != "none") optpars <- c(optpars, symptfact = factbaseline)
-      } else {
-        optpars <- c(optpars, homefact = factbaseline)
-        if (symptrans != "none") optpars <- c(optpars, symptfact = factbaseline)
-      }
     }
     optup <- rep(.99, length(optpars))
     optlow <- rep(0, length(optpars))
@@ -267,26 +257,21 @@ fitfun <- function(poppars, preR, postR, scenarios) {
         tarR = postR, lower = optlow, upper = optup,
         method = if (length(optpars) == 1) "Brent" else "L-BFGS-B"
       )$par
-      names(opars)[1] <- "large"
+      res <- within(fillargs(opars),{
+        smallred <- large*smallfact
+        largered <- large
+        sympred <- large*symptfact
+      })
+      #names(opars)[1] <- "large"
     # }
-    
-    res <- within(modifyList(
-      list(smallfact = 0, homefact = 0, symptfact = 0),
-      as.list(opars)
-    ), {
-      smallred <- large*smallfact
-      homered <- large*homefact
-      largered <- large
-      sympred <- large*symptfact
-    })
     
     rcalc <- sapply(ured, function(u)
       R0_recalc(opars, u, poppars = poppars, ls_cats = force(c(work, school, other)))
     )
     names(rcalc) <- sprintf("R.%s", c("ll","lo","md","hi","hh"))
     setTxtProgressBar(prg, .GRP)
-    c(res[c("largered","smallred","homered","sympred")], as.list(rcalc))
-  }, by=.(home, work, school, other, symptrans)]
+    c(res[c("largered","smallred","sympred")], as.list(rcalc))
+  }, by=.(work, school, other)]
 
 }
 

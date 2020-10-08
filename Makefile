@@ -59,6 +59,8 @@ ${OUTDIR}/eligible.csv: params_filter.R | ${OUTDIR}
 ${OUTDIR}/fits/%.rds: param_fit.R ${OUTDIR}/%/result.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/%/contact_matrices.rds ${OTHDIR}/covidm_fit_yu.qs
 	${R}
 
+testfit: ${OUTDIR}/fits/ZAF.rds ${OUTDIR}/fits/KEN.rds ${OUTDIR}/fits/AFG.rds
+
 SLURMTEMP ?= slurm.template
 
 ${OUTDIR}/jobs.slurm: slurm.R ${SLURMTEMP} ${INDIR}/iso3.csv | ${OUTDIR}

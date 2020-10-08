@@ -5,7 +5,7 @@ suppressPackageStartupMessages({
 
 .debug <- "output_data"
 .args <- if (interactive()) sprintf(c(
-  "%s", "%s/eligible.csv"
+  "%s", "~/Dropbox/covidm_reports/hpc_inputs", "%s/eligible.csv"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 tars <- grep(
@@ -14,11 +14,13 @@ tars <- grep(
   value = T
 )
 
+inputisos <- list.dirs(.args[2], full.names = F)[-1]
+
 #' which of tars have pre / post estimates?
 
-subtars <- data.table(iso=gsub("/result\\.rds", "", tars[sapply(tars, function(fn) {
+subtars <- data.table(iso=intersect(inputisos, gsub("/result\\.rds", "", tars[sapply(tars, function(fn) {
   res <- readRDS(sprintf("%s/%s", .args[1], fn))
   res[, era[1] == "pre" & era[.N] == "post"] & res[, med[1] > med[.N]]
-})]))
+})])))
 
 fwrite(subtars, tail(.args, 1), col.names = F)
