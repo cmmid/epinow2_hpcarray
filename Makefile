@@ -67,11 +67,11 @@ ${OUTDIR}/scens/%.rds: gen_scenarios.R ${OUTDIR}/fits/%.rds ${OUTDIR}/%/result.r
 
 testscen: ${OUTDIR}/scens/ZAF.rds
 
-${OUTDIR}/%/projection.rds: run_scenario.R ${OUTDIR}/scens/%.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/covidm_fit_yu.qs ${OUTDIR}/%/result.rds ${OTHDIR}/%/contact_matrices.rds | ${COVIDMPATH}
+${OUTDIR}/%/projection.qs: run_scenario.R ${OUTDIR}/scens/%.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/covidm_fit_yu.qs ${OUTDIR}/%/result.rds ${OTHDIR}/%/contact_matrices.rds | ${COVIDMPATH}
 	Rscript $^ $| $@
 
 testfit: ${OUTDIR}/fits/ZAF.rds ${OUTDIR}/fits/KEN.rds ${OUTDIR}/fits/AFG.rds
-testproj: ${OUTDIR}/ZAF/projection.rds
+testproj: ${OUTDIR}/ZAF/projection.qs
 
 SLURMTEMP ?= slurm.template
 

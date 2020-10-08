@@ -252,8 +252,5 @@ for (scenario_index in 1:max(scenario$scen_id)) {
   }
   
 }
-  
 
-
-alldt <- setkeyv(rbindlist(allbind), key(allbind[[1]]))
-qsave(alldt, tarfile)
+qsave(allbind, tarfile)
