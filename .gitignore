@@ -3,6 +3,7 @@ local.makefile
 *.csv
 *.slurm
 *.xlsx
+*.png
 
 .Rproj.user/*
 .Rproj.user

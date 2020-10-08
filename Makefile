@@ -12,6 +12,9 @@ INDIR ?= ~/Dropbox/input_rt_reports
 # where are we putting analysis outputs?
 OUTDIR ?= ~/Dropbox/output_rt_reports
 OTHDIR ?= ~/Dropbox/covidm_reports/hpc_inputs
+
+COVIDMPATH ?= ../covidm
+
 # how many cores available?
 NCORES ?= 3
 
@@ -59,7 +62,16 @@ ${OUTDIR}/eligible.csv: params_filter.R | ${OUTDIR}
 ${OUTDIR}/fits/%.rds: param_fit.R ${OUTDIR}/%/result.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/%/contact_matrices.rds ${OTHDIR}/covidm_fit_yu.qs
 	${R}
 
+${OUTDIR}/scens/%.rds: gen_scenarios.R ${OUTDIR}/fits/%.rds ${OUTDIR}/%/result.rds ${OTHDIR}/%/timing.rds
+	${R}
+
+testscen: ${OUTDIR}/scens/ZAF.rds
+
+${OUTDIR}/%/projection.rds: run_scenario.R ${OUTDIR}/scens/%.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/covidm_fit_yu.qs ${OUTDIR}/%/result.rds ${OTHDIR}/%/contact_matrices.rds | ${COVIDMPATH}
+	Rscript $^ $| $@
+
 testfit: ${OUTDIR}/fits/ZAF.rds ${OUTDIR}/fits/KEN.rds ${OUTDIR}/fits/AFG.rds
+testproj: ${OUTDIR}/ZAF/projection.rds
 
 SLURMTEMP ?= slurm.template
 
