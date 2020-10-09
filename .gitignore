@@ -7,3 +7,5 @@ local.makefile
 
 .Rproj.user/*
 .Rproj.user
+
+output_data/*
