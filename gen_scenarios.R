@@ -2,16 +2,19 @@ suppressPackageStartupMessages({
   require(data.table)
 })
 
-.debug <- c("output_data", "ZAF")
+.debug <- "NGA"
 .args <- if (interactive()) sprintf(c(
-  "%s/fits/%s.rds", "%s/%s/result.rds", "~/Dropbox/covidm_reports/hpc_inputs/ZAF/timing.rds", "%s/scens/%s.rds"
-), .debug[1], .debug[2]) else commandArgs(trailingOnly = TRUE)
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/fits/alt_%s.rds",
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
+  "~/Dropbox/covidm_reports/hpc_inputs/%s/timing.rds",
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/scens/alt_%s.rds"
+), .debug) else commandArgs(trailingOnly = TRUE)
 
 #' parameter fitting results
 fit.dt <- readRDS(.args[1])
 #' intervention start date
 ts.dt <- readRDS(.args[2])
-start_date <- ts.dt[era == "window", round(median(date))]
+start_date <- ts.dt[era == "post", date]
 
 day0 <- readRDS(.args[3])$day0date
 #' target output

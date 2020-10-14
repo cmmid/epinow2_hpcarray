@@ -5,9 +5,10 @@ suppressPackageStartupMessages({
   require(ggplot2)
 })
 
-.debug <- "ZAF"
+.debug <- "NGA"
 .args <- if (interactive()) sprintf(c(
-  "output_data/%s/projection.qs", "~/Dropbox/covidm_reports/hpc_inputs/%s/timing.rds", "cases.rds", "%s.png"
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_projection.qs",
+  "~/Dropbox/covidm_reports/hpc_inputs/%s/timing.rds", "cases.rds", "alt5_%s.png"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 dt <- qread(.args[1])[
@@ -29,20 +30,16 @@ cases[order(date), cvalue := cumsum(value), by=compartment ]
 
 dt[, date := day0 + t ]
 
-# allage.dt <- dt[,
-#   .(value = sum(value)),
-#   keyby=.(scen_id, run, compartment, date = day0 + t)
-# ]
-# allage.dt[order(date), cvalue := cumsum(value), by=.(scen_id, run, compartment) ]
+allage.dt <- dt[,
+  .(value = sum(value)),
+  keyby=.(scen_id, run, compartment, date = day0 + t)
+]
+allage.dt[order(date), cvalue := cumsum(value), by=.(scen_id, run, compartment) ]
 
-p <- ggplot(dt[
-  scen_id != 1
-][
-  group %in% c("0-4","25-29","75+")
-][
+p <- ggplot(allage.dt[
   compartment %in% c("cases","subclinical","deaths")
 ][run == 3]) +
-  facet_grid(compartment ~ group, scales = "free_y") +
+  facet_grid(compartment ~ ., scales = "free_y") +
   aes(date, value, color = factor(scen_id), linetype = c('ll','lo','md','hi','hh')[run], group = interaction(scen_id, run)) +
   geom_line() +
   geom_line(aes(color = "observed", linetype = "md", group = NULL), cases) +

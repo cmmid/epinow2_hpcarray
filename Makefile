@@ -83,7 +83,7 @@ ${OUTDIR}/SI_fig_int_distro.png: SI_fig_int_distro.R $(addprefix ${INDIR}/,inter
 
 sifigs: ${OUTDIR}/SI_fig_int_distro.png
 
-setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv jobs.slurm rawinterventions.csv interventions.rds rt_bounds.rds)
+setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv rawinterventions.csv interventions.rds rt_bounds.rds)
 
 ALLISOS ?= $(shell cat ${INDIR}/iso3.csv)
 

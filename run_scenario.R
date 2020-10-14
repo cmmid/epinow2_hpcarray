@@ -3,15 +3,15 @@ suppressPackageStartupMessages({
   require(qs)
 })
 
-.debug <- "ZAF"
+.debug <- "NGA"
 .args <- if (interactive()) sprintf(c(
-  "output_data/scens/%s.rds",
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/scens/alt_%s.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/covidm_fit_yu.qs",
-  "output_data/%s/result.rds",
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/contact_matrices.rds",
   "../covidm",
-  "output_data/%s/projection.qs"
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_projection.qs"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 # load covidm
@@ -37,8 +37,20 @@ yref <- unname(as.matrix(medyu[, .SD, .SDcols = grep("y_",colnames(medyu))]))
 uref <- unname(as.matrix(medyu[, .SD, .SDcols = grep("u_",colnames(medyu))]))
 ys <- rep(yref[1, ], each = 2)
 us <- rep(uref[1, ], each = 2)
+#if (.debug == "NGA") {
+#  ushft <- max(us)/us
+#  us <- 1/(1:length(us)+1)
+#  ys <- ys / ushft
+#}
 
 params <- readRDS(.args[2])[[1]]
+
+urbfrac <- 1
+#urbfrac <- if (.debug == "NGA") .51 else 1
+
+params$pop[[1]]$seed_times <- rep(0, 1000)
+params$pop[[1]]$size <- round(params$pop[[1]]$size*urbfrac)
+params$pop[[1]]$dist_seed_ages <- c(rep(0,4), rep(0, 6), rep(0, 6))
 
 params_back <- params
 

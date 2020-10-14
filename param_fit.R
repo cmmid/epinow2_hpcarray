@@ -4,13 +4,13 @@ suppressPackageStartupMessages({
   require(qs)
 })
 
-.debug <- "ZAF"
+.debug <- "NGA"
 .args <- if (interactive()) sprintf(c(
-  "./output_data/%s/result.rds",
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/contact_matrices.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/covidm_fit_yu.qs",
-  "%s.rds"
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/fits/alt_%s.rds"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 R0ref <- readRDS(.args[1])

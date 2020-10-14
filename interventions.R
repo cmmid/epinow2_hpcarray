@@ -1,9 +1,12 @@
-require(data.table)
-require(lubridate)
+suppressPackageStartupMessages({
+  require(data.table)
+  require(lubridate)
+})
 
-.args <- if (interactive()) c(
-  "rawinterventions.csv", "interventions.rds"
-) else commandArgs(trailingOnly = TRUE)
+.debug <- "."
+.args <- if (interactive()) sprintf(c(
+  "%s/rawinterventions.csv", "%s/interventions.rds"
+), .debug) else commandArgs(trailingOnly = TRUE)
 
 # TODO: move over intervention start timing analysis
 # dayeff: is the estimate of the day the intervention becomes effective
