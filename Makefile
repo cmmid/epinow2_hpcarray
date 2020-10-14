@@ -10,7 +10,7 @@ default: test
 # where are we putting analysis inputs?
 INDIR ?= ~/Dropbox/input_rt_reports
 # where are we putting analysis outputs?
-OUTDIR ?= ~/Dropbox/output_rt_reports
+OUTDIR ?= ~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting
 OTHDIR ?= ~/Dropbox/covidm_reports/hpc_inputs
 
 COVIDMPATH ?= ../covidm
