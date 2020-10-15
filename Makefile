@@ -62,7 +62,10 @@ ${OUTDIR}/eligible.csv: params_filter.R | ${OUTDIR}
 ${OUTDIR}/fits/%.rds: param_fit.R ${OUTDIR}/%/result.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/%/contact_matrices.rds ${OTHDIR}/covidm_fit_yu.qs
 	${R}
 
-${OUTDIR}/scens/%.rds: gen_scenarios.R ${OUTDIR}/fits/%.rds ${OUTDIR}/%/result.rds ${OTHDIR}/%/timing.rds
+intros/intros.rds:
+	cd $(@D) && $(MAKE) -C $(@F)
+
+${OUTDIR}/scens/%.rds: gen_scenarios.R ${OUTDIR}/fits/%.rds ${OUTDIR}/%/result.rds intros/intros.rds
 	${R}
 
 testscen: ${OUTDIR}/scens/ZAF.rds
