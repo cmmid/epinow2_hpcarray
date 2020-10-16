@@ -5,7 +5,7 @@ suppressPackageStartupMessages({
   require(patchwork)
 })
 
-.debug <- "NGA"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "cases.rds",
   "rt_bounds.rds",
@@ -51,9 +51,9 @@ reporting_delay <- list(
 )
 
 # additional time to include for algorithm
-est.window <- 30
-smps <- 5e3
-crs <- 4
+est.window <- 60
+smps <- 1e3
+crs <- 2
 
 early_reported_cases <- case.dt[date <= (lims.dt$interventionend + est.window)]
 with(lims.dt,{
@@ -90,49 +90,51 @@ early_reported_cases[, breakpoint := era %in% c("window", "censor") ]
 #   horizon = 0, verbose = TRUE, return_fit = FALSE
 # )$samples[variable == "R", .(value), by=.(sample, date)]
 # 
-# cmbn <- function(brks, non) {
-#   res <- rbind(
-#     brks[, analysis := "breakpoint"],
-#     non[, analysis := "continuous"]
-#   )
-#   res[, {
-#     qs <- quantile(value, probs = c(0.025, 0.25, 0.5, 0.75, 0.975))
-#     names(qs) <- c("lo.lo","lo","med","hi","hi.hi")
-#     as.list(qs)
-#   }, keyby = .(analysis, date)]
-# }
 # 
 # results <- cmbn(fbkp, nobrk)
-# 
-# xscale <- scale_x_date(
-#   date_breaks="week", date_labels = c("%b %d"),
-#   minor_breaks = NULL
-# )
-# 
-# p1 <- function(dt) ggplot(dt) + aes(date) +
-#   geom_ribbon(aes(ymin=lo.lo, ymax=hi.hi, fill=analysis), alpha = 0.2) +
-#   geom_ribbon(aes(ymin=lo, ymax=hi, fill=analysis), alpha = 0.2) +
-#   geom_line(aes(y=med, color=analysis)) +
-#   theme_minimal() +
-#   theme(
-# #    axis.text.x = element_blank(),
-# #    axis.title.x = element_blank()
-#   ) +
-#   xscale +
-#   scale_y_continuous("Rt")
-# 
-# p2 <- function(dt) ggplot(dt[date <= (lims.dt$interventionend + est.window)]) + aes(date, confirm) +
-#   geom_line() +
-#   theme_minimal() +
-#   theme(
-#     axis.text.x = element_text(angle = 90, vjust = .5)
-#   ) +
-#   xscale +
-#   scale_y_log10("Confirmed Cases")
-# 
-# (p1(results) / p2(fill.case)) & coord_cartesian(
-#   xlim = range(re.est$date)
-# )
+
+#' @examples 
+#' xscale <- scale_x_date(
+#'   date_breaks="week", date_labels = c("%b %d"),
+#'   minor_breaks = NULL
+#' )
+#' 
+#' p1 <- function(dt) ggplot(dt) + aes(date) +
+#'   geom_ribbon(aes(ymin=lo.lo, ymax=hi.hi, fill=analysis), alpha = 0.2) +
+#'   geom_ribbon(aes(ymin=lo, ymax=hi, fill=analysis), alpha = 0.2) +
+#'   geom_line(aes(y=med, color=analysis)) +
+#'   theme_minimal() +
+#'   theme(
+#' #    axis.text.x = element_blank(),
+#' #    axis.title.x = element_blank()
+#'   ) +
+#'   xscale +
+#'   scale_y_continuous("Rt")
+#' 
+#' p2 <- function(dt) ggplot(dt[date <= (lims.dt$interventionend + est.window)]) + aes(date, confirm) +
+#'   geom_line() +
+#'   theme_minimal() +
+#'   theme(
+#'     axis.text.x = element_text(angle = 90, vjust = .5)
+#'   ) +
+#'   xscale +
+#'   scale_y_log10("Confirmed Cases")
+#'
+#' cmbn <- function(brks, non) {
+#'   res <- rbind(
+#'     brks[, analysis := "breakpoint"],
+#'     non[, analysis := "continuous"]
+#'   )
+#'   res[, {
+#'     qs <- quantile(value, probs = c(0.025, 0.25, 0.5, 0.75, 0.975))
+#'     names(qs) <- c("lo.lo","lo","med","hi","hi.hi")
+#'     as.list(qs)
+#'   }, keyby = .(analysis, date)]
+#' }
+#'
+#' (p1(results) / p2(fill.case)) & coord_cartesian(
+#'   xlim = range(re.est$date)
+#' )
 
 rebreak <- copy(early_reported_cases)
 
@@ -178,24 +180,25 @@ results <- re.est[
 saveRDS(results, tail(.args, 1))
 
 # 7-centre'd moving average estimate_week_eff
-# re.cont <- estimate_infections(
-#   rebreak[, .(date, confirm = round(frollmean(confirm, 7, align = "center")))][!is.na(confirm)],
-#   family = "negbin",
-#   generation_time = generation_time,
-#   delays = list(incubation_period, reporting_delay),
-#   samples = smps, cores = crs,
-#   chains = crs*2,
-#   fixed = FALSE, horizon = 0,
-#   verbose = TRUE, return_fit = FALSE,
-#   estimate_week_eff = FALSE
-# )$samples[variable == "R", .(value), by=.(sample, date)]
-# 
-# moreres <- cmbn(re.est, re.cont)
-# smooth.cases <- case.dt[, .(date, confirm = round(frollmean(confirm, 7, align = "center")))][!is.na(confirm)]
-# 
-# (p1(moreres) / p2(smooth.cases)) & coord_cartesian(
-#   xlim = range(re.est$date)
-# )
+#' @examples 
+#' re.cont <- estimate_infections(
+#'   rebreak[, .(date, confirm = round(frollmean(confirm, 7, align = "center")))][!is.na(confirm)],
+#'   family = "negbin",
+#'   generation_time = generation_time,
+#'   delays = list(incubation_period, reporting_delay),
+#'   samples = smps, cores = crs,
+#'   chains = crs*2,
+#'   fixed = FALSE, horizon = 0,
+#'   verbose = TRUE, return_fit = FALSE,
+#'   estimate_week_eff = FALSE
+#' )$samples[variable == "R", .(value), by=.(sample, date)]
+#' 
+#' moreres <- cmbn(re.est, re.cont)
+#' smooth.cases <- case.dt[, .(date, confirm = round(frollmean(confirm, 7, align = "center")))][!is.na(confirm)]
+#' 
+#' (p1(moreres) / p2(smooth.cases)) & coord_cartesian(
+#'   xlim = range(re.est$date)
+#' )
 # 
 # (p1(results) + p1(moreres) + plot_layout(guides = "collect")) &
 #   coord_cartesian(ylim = range(

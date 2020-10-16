@@ -3,13 +3,15 @@ suppressPackageStartupMessages({
   require(qs)
 })
 
-.debug <- "NGA"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/scens/alt_%s.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/covidm_fit_yu.qs",
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/contact_matrices.rds",
+  "intros/intros.rds",
+  "intros/urban.rds",
   "../covidm",
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_projection.qs"
 ), .debug) else commandArgs(trailingOnly = TRUE)
@@ -45,12 +47,16 @@ us <- rep(uref[1, ], each = 2)
 
 params <- readRDS(.args[2])[[1]]
 
-urbfrac <- 1
+tariso <- gsub(".+([[:upper:]]{3})\\.rds$","\\1", .args[1])
+
+intros <- readRDS(.args[6])[iso3 == tariso, Reduce(c, mapply(rep, intro.day, intros, SIMPLIFY = FALSE))]
+urbfrac <- readRDS(.args[7])[iso3 == tariso, value / 100]
+
 #urbfrac <- if (.debug == "NGA") .51 else 1
 
-params$pop[[1]]$seed_times <- rep(0, 1000)
+params$pop[[1]]$seed_times <- intros
 params$pop[[1]]$size <- round(params$pop[[1]]$size*urbfrac)
-params$pop[[1]]$dist_seed_ages <- c(rep(0,4), rep(0, 6), rep(0, 6))
+# params$pop[[1]]$dist_seed_ages <- c(rep(0,4), rep(1, 6), rep(0, 6))
 
 params_back <- params
 

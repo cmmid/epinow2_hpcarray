@@ -2,13 +2,15 @@ suppressPackageStartupMessages({
   require(data.table)
 })
 
-.debug <- "NGA"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/fits/alt_%s.rds",
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
-  "~/Dropbox/covidm_reports/hpc_inputs/%s/timing.rds",
+  "intros/intros.rds",
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/scens/alt_%s.rds"
 ), .debug) else commandArgs(trailingOnly = TRUE)
+
+tariso <- gsub(".+([[:upper:]]{3})\\.rds$","\\1", .args[1])
 
 #' parameter fitting results
 fit.dt <- readRDS(.args[1])
@@ -16,7 +18,7 @@ fit.dt <- readRDS(.args[1])
 ts.dt <- readRDS(.args[2])
 start_date <- ts.dt[era == "post", date]
 
-day0 <- readRDS(.args[3])$day0date
+day0 <- readRDS(.args[3])[iso3 == tariso, min(intro.date)]
 #' target output
 outfile <- tail(.args, 1)
 

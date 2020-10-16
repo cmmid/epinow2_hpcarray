@@ -5,10 +5,11 @@ suppressPackageStartupMessages({
   require(ggplot2)
 })
 
-.debug <- "NGA"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_projection.qs",
-  "~/Dropbox/covidm_reports/hpc_inputs/%s/timing.rds", "cases.rds", "alt5_%s.png"
+  "intros/intros.rds",
+  "cases.rds", "alt6_%s.png"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 dt <- qread(.args[1])[
@@ -17,7 +18,9 @@ dt <- qread(.args[1])[
 
 dt[compartment == "death_o", compartment := "deaths"]
 
-day0 <- readRDS(.args[2])$day0date
+tariso <- gsub(".+([[:upper:]]{3})\\.png$","\\1", tail(.args, 1))
+
+day0 <- readRDS(.args[2])[iso3 == tariso, intro.date[1]]
 
 isoref <- gsub("^.*([[:upper:]]{3}).*$","\\1",.args[1])
 cases <- melt(
