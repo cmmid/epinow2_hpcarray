@@ -5,11 +5,11 @@ suppressPackageStartupMessages({
   require(ggplot2)
 })
 
-.debug <- "ZAF"
+.debug <- "KEN"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_projection.qs",
   "intros/intros.rds",
-  "cases.rds", "alt6_%s.png"
+  "cases.rds", "alt7_%s.png"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 dt <- qread(.args[1])[

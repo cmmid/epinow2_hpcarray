@@ -4,7 +4,7 @@ suppressPackageStartupMessages({
   require(qs)
 })
 
-.debug <- "NGA"
+.debug <- "KEN"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
@@ -275,4 +275,6 @@ fitfun <- function(poppars, preR, postR, scenarios) {
 
 }
 
-saveRDS(fitfun(pars, preR0, postR0, scens), tail(.args, 1))
+ret <- fitfun(pars, preR0, postR0, scens)
+
+saveRDS(ret, tail(.args, 1))

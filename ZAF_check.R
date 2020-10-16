@@ -5,7 +5,7 @@ suppressPackageStartupMessages({
   require(patchwork)
 })
 
-.debug <- "ZAF"
+.debug <- "KEN"
 .args <- if (interactive()) sprintf(c(
   "cases.rds",
   "rt_bounds.rds",
@@ -17,8 +17,10 @@ tariso <- tail(.args, 2)[1]
 
 case.dt <- readRDS(.args[1])[iso3 == tariso][, .(date, confirm = cases )]
 lims.dt <- readRDS(.args[2])[iso3 == tariso]
-
-shft <- 4
+lims.dt[, transitionstart := transitionstart - 3 ]
+#lims.dt[, transitionstart := as.Date("2020-03-23") ]
+lims.dt[, transitionend := transitionstart + 17 ]
+lims.dt[, interventionend := transitionend + 60 ]
 
 #' @examples
 #' ggplot(case.dt) + aes(date, confirm) + geom_line() +
@@ -51,9 +53,9 @@ reporting_delay <- list(
 )
 
 # additional time to include for algorithm
-est.window <- 60
-smps <- 1e3
-crs <- 2
+est.window <- 30
+smps <- 2e3
+crs <- 4
 
 early_reported_cases <- case.dt[date <= (lims.dt$interventionend + est.window)]
 with(lims.dt,{
@@ -138,18 +140,18 @@ early_reported_cases[, breakpoint := era %in% c("window", "censor") ]
 
 rebreak <- copy(early_reported_cases)
 
-rebreak[era %in% c("window","introduction"), breakpoint := FALSE]
-rebreak[era %in% c("window", "pre"), era := "post"]
-rebreak[era == "introduction", era := "pre"]
-
-cntr <- as.Date(lims.dt$transitionstart) - shft + 4
-
-rebreak[
-  between(date, cntr-4, cntr+3),
-  era := "window"
-]
-rebreak[date < cntr - 4, era := "pre" ]
-rebreak[era == "window", breakpoint := TRUE]
+# rebreak[era %in% c("window","introduction"), breakpoint := FALSE]
+# rebreak[era %in% c("window", "pre"), era := "post"]
+# rebreak[era == "introduction", era := "pre"]
+# 
+# cntr <- as.Date(lims.dt$transitionstart) - shft + 4
+# 
+# rebreak[
+#   between(date, cntr-4, cntr+3),
+#   era := "window"
+# ]
+# rebreak[date < cntr - 4, era := "pre" ]
+# rebreak[era == "window", breakpoint := TRUE]
 rebreak[cumsum(confirm) <= 10, era := "introduction"]
 rebreak[era == "introduction", breakpoint := TRUE ]
 
@@ -157,15 +159,15 @@ re.est <- estimate_infections(
   rebreak, family = "negbin",
   generation_time = generation_time,
   delays = list(incubation_period, reporting_delay),
-  samples = smps, warmup = smps*0.1, cores = crs,
-  chains = crs*2,
+  samples = smps, cores = crs,
+  chains = crs,
   estimate_breakpoints = TRUE,
   fixed = TRUE, horizon = 0,
   verbose = TRUE, return_fit = TRUE
 )$samples[variable == "R", .(value), by=.(sample, date)]
 
 results <- re.est[
-  between(date, cntr-5, cntr+4)
+  between(date, lims.dt$transitionstart-1, lims.dt$transitionend+1)
 ][, {
   qs <- quantile(value, probs = c(0.025, 0.25, 0.5, 0.75, 0.975))
   names(qs) <- c("lo.lo","lo","med","hi","hi.hi")
@@ -173,7 +175,9 @@ results <- re.est[
 }, keyby = .(date)][
   rebreak[,
                  .(date, ccases = cumsum(confirm), era)
-  ][between(date, cntr-5, cntr+4)],
+  ][
+    between(date, lims.dt$transitionstart-1, lims.dt$transitionend+1)
+  ],
   on=.(date)
 ]
 

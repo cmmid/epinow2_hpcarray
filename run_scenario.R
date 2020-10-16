@@ -3,7 +3,7 @@ suppressPackageStartupMessages({
   require(qs)
 })
 
-.debug <- "ZAF"
+.debug <- "KEN"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/scens/alt_%s.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",

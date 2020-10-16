@@ -14,3 +14,5 @@ urban.rds:
 	mv API_SP.URB.TOTL.IN.ZS_DS2_*.csv tmp.csv
 	Rscript urbanization.R tmp.csv $@
 	rm tmp.zip tmp.csv
+
+setup: intros.rds urban.rds
