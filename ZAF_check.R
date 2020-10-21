@@ -5,7 +5,7 @@ suppressPackageStartupMessages({
   require(patchwork)
 })
 
-.debug <- "KEN"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "cases.rds",
   "rt_bounds.rds",
@@ -38,6 +38,8 @@ generation_time <- as.list(
   EpiNow2::covid_generation_times[
     1, .(mean, mean_sd, sd, sd_sd, max=30)
 ])
+
+generation_time$mean <- 12
 
 # Set delays between infection and case report
 # (any number of delays can be specifed here)

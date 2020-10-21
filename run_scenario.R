@@ -3,7 +3,7 @@ suppressPackageStartupMessages({
   require(qs)
 })
 
-.debug <- "KEN"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/scens/alt_%s.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
@@ -58,14 +58,6 @@ params$pop[[1]]$seed_times <- intros
 params$pop[[1]]$size <- round(params$pop[[1]]$size*urbfrac)
 # params$pop[[1]]$dist_seed_ages <- c(rep(0,4), rep(1, 6), rep(0, 6))
 
-params_back <- params
-
-run_options <- melt(
-  readRDS(.args[4])[era == "pre"],
-  measure.vars = c("lo.lo","lo","med","hi","hi.hi"),
-  value.name = "r0"
-)[, model_seed := 1234L ]
-
 contact_matrices <- readRDS(.args[5])
 
 refcm <- if (is.null(names(contact_matrices))) { 
@@ -75,16 +67,16 @@ refcm <- if (is.null(names(contact_matrices))) {
 } else { contact_matrices }
 names(refcm) <- gsub("cm_","",names(refcm))
 
-params_back$pop <- lapply(
-  params_back$pop,
+params$pop <- lapply(
+  params$pop,
   function(x){
     x$matrices <- refcm
     return(x)
   }
 )
 
-params_back$pop <- lapply(
-  params_back$pop,
+params$pop <- lapply(
+  params$pop,
   function(x){
     x$y <- ys
     x$u <- us
@@ -92,6 +84,13 @@ params_back$pop <- lapply(
   }
 )
 
+params_back <- params
+
+run_options <- melt(
+  readRDS(.args[4])[era == "pre"],
+  measure.vars = c("lo.lo","lo","med","hi","hi.hi"),
+  value.name = "r0"
+)[, model_seed := 1234L ]
 
 cm_calc_R0_extended <- function(
   params
@@ -222,13 +221,13 @@ for (scenario_index in 1:max(scenario$scen_id)) {
     #adjust r0 to that in current sample
     target_R0 <- run_options[i, r0]
     uf <- target_R0 / cm_calc_R0_extended(params)
-    params$pop <- lapply(
-      params$pop,
-      function(x){
-        x$u <- x$u * uf
-        return(x)
-      }
-    )
+    # params$pop <- lapply(
+    #   params$pop,
+    #   function(x){
+    #     x$u <- x$u * uf
+    #     return(x)
+    #   }
+    # )
     
     if (iv_data[,.N]) {
       iv = cm_iv_build(params)
