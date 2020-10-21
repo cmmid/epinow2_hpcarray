@@ -16,6 +16,8 @@ suppressPackageStartupMessages({
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_projection.qs"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
+load("NGM.rda")
+
 # load covidm
 cm_path = tail(.args, 2)[1]
 cm_force_rebuild = F;
@@ -51,6 +53,7 @@ tariso <- gsub(".+([[:upper:]]{3})\\.rds$","\\1", .args[1])
 
 intros <- readRDS(.args[6])[iso3 == tariso, Reduce(c, mapply(rep, intro.day, intros, SIMPLIFY = FALSE))]
 urbfrac <- readRDS(.args[7])[iso3 == tariso, value / 100]
+urbfrac <- 1
 
 #urbfrac <- if (.debug == "NGA") .51 else 1
 
@@ -84,132 +87,21 @@ params$pop <- lapply(
   }
 )
 
-params_back <- params
-
 run_options <- melt(
   readRDS(.args[4])[era == "pre"],
   measure.vars = c("lo.lo","lo","med","hi","hi.hi"),
   value.name = "r0"
 )[, model_seed := 1234L ]
 
-cm_calc_R0_extended <- function(
-  params
-){
-  
-  infected_states <- c("E","Ia","Ip","Is")
-  infected_states_entry <- c(1,0,0,0)
-  ages <- c(1:length(params$pop[[1]]$size))
-  pops <- sapply(params$pop, "[[", "name")
-  
-  duration <- function(distributed_times, tstep=params$time_step){
-    #calculates the mean of the distribution
-    sum(distributed_times * seq(0, by=tstep, length.out = length(distributed_times)))
-  }
-  
-  #reduced transmission matrix
-  #transmission matrix T times inverse of auxiliary matrix E
-  transmission_reduced <- matrix(
-    0,
-    sum(infected_states_entry)*length(ages)*length(pops),
-    length(infected_states)*length(ages)*length(pops)
-  )
-  
-  #reduced transition matrix
-  #negative of inversed transition matrix Sigma times auxilliary matrix E
-  transition_reduced <- matrix(
-    0,
-    length(infected_states)*length(ages)*length(pops),
-    sum(infected_states_entry)*length(ages)*length(pops)
-  )
-  
-  for(p1 in 1:length(params$pop)){
-    cm = Reduce('+', mapply(function(c, m) c * m, params$pop[[p1]]$contact, params$pop[[p1]]$matrices, SIMPLIFY = F))
-    for(a1 in 1:length(params$pop[[p1]]$size)){
-      for(p2 in 1:length(params$pop)){
-        for(a2 in 1:length(params$pop[[p2]]$size)){
-          for(s in 1:length(infected_states)){
-            sj <- ti <- (p1-1)*length(params$pop[[p1]]$size)+a1
-            si <- tj <- (p2-1)*length(params$pop[[p2]]$size)*length(infected_states)+(a2-1)*length(infected_states)+s
-            
-            trates <- c(
-              "E" = 0,
-              "Ia" =  params$pop[[p1]]$u[a1] *
-                ifelse(
-                  params$pop[[p1]]$size[a1] != 0,
-                  params$pop[[p2]]$size[a2]/params$pop[[p1]]$size[a1],
-                  0
-                ) *
-                #adjust beta if population size is scaled down
-                # as probability with which people are contacted will be scale down if there
-                # are less people of that age
-                ifelse(
-                  !is.null(params$pop[[p2]]$size_original),
-                  params$pop[[p2]]$size[a2]/params$pop[[p2]]$size_original[a2],
-                  1
-                ) *
-                cm[a1,a2] * 
-                params$pop[[p2]]$fIa[a2] *
-                params$travel[p1,p2] *
-                ifelse(p1==p2,1,params$pop[[p2]]$tau[a2]),
-              "Ip" = params$pop[[p1]]$u[a1] *
-                ifelse(
-                  params$pop[[p1]]$size[a1] != 0,
-                  params$pop[[p2]]$size[a2]/params$pop[[p1]]$size[a1],
-                  0
-                ) *
-                #adjust beta if population size is scaled down
-                ifelse(
-                  !is.null(params$pop[[p2]]$size_original),
-                  params$pop[[p2]]$size[a2]/params$pop[[p2]]$size_original[a2],
-                  1
-                ) *
-                cm[a1,a2] * 
-                params$pop[[p2]]$fIp[a2] *
-                params$travel[p1,p2] *
-                ifelse(p1==p2,1,params$pop[[p2]]$tau[a2]),
-              "Is" = params$pop[[p1]]$u[a1] *
-                ifelse(
-                  params$pop[[p1]]$size[a1] != 0,
-                  params$pop[[p2]]$size[a2]/params$pop[[p1]]$size[a1],
-                  0
-                ) *
-                #adjust beta if population size is scaled down
-                ifelse(
-                  !is.null(params$pop[[p2]]$size_original),
-                  params$pop[[p2]]$size[a2]/params$pop[[p2]]$size_original[a2],
-                  1
-                ) *
-                cm[a1,a2] * 
-                params$pop[[p2]]$fIs[a2] *
-                params$travel[p1,p2] *
-                ifelse(p1==p2,1,params$pop[[p2]]$tau[a2])
-            )
-            
-            #only applicable within one age
-            if(p1==p2 & a1==a2){
-              srates <- c(
-                "E" = duration(params$pop[[p1]]$dE),
-                "Ia" = (1-params$pop[[p1]]$y[a1])*duration(params$pop[[p1]]$dIa),
-                "Ip" = params$pop[[p1]]$y[a1]*duration(params$pop[[p1]]$dIp),
-                "Is" = params$pop[[p1]]$y[a1]*duration(params$pop[[p1]]$dIs)
-              )  
-            } else ( srates <- rep(0, 4) )
-            
-            transmission_reduced[ti,tj] <- trates[s]
-            transition_reduced[si,sj] <- srates[s]
-          }
-        }
-      }
-    }
-  }
-  k <- transmission_reduced %*% transition_reduced
-  #if(is.complex(eigen(k)$values)){
-  #  warning("Eigenvalue is complex")
-  #}
-  return(max(Re(eigen(k)$values)))
-}
+params_back <- params
 
 allbind <- data.table()
+
+scenario[, waning_dur := NA_integer_ ]
+#scenario[!(scen_type == "unmitigated"), waning_dur := 90 ]
+
+prg <- txtProgressBar(max = scenario[,.N]*run_options[,.N], style = 3)
+prgind <- 0
 
 for (scenario_index in 1:max(scenario$scen_id)) {
   #' sub
@@ -220,16 +112,16 @@ for (scenario_index in 1:max(scenario$scen_id)) {
     
     #adjust r0 to that in current sample
     target_R0 <- run_options[i, r0]
-    uf <- target_R0 / cm_calc_R0_extended(params)
-    # params$pop <- lapply(
-    #   params$pop,
-    #   function(x){
-    #     x$u <- x$u * uf
-    #     return(x)
-    #   }
-    # )
+    uf <- target_R0 / cm_ngm(params)$R0
+    params$pop <- lapply(
+      params$pop,
+      function(x){
+        x$u <- x$u * uf
+        return(x)
+      }
+    )
     
-    if (iv_data[,.N]) {
+    if (iv_data[!(scen_type == "unmitigated"), .N]) {
       iv = cm_iv_build(params)
       
       # generic interventions
@@ -238,12 +130,24 @@ for (scenario_index in 1:max(scenario$scen_id)) {
         
         with(as.list(iv_data[population == -1][j]), {
           contact <- c(home, work, school, other)
-          cm_iv_set(iv,
-                    as.Date(params$date0) + start_day,
-                    as.Date(params$date0) + ifelse(is.finite(end_day),end_day,1e3),
-                    fIs = rep(1-self_iso, 16),
-                    contact = 1-contact # TODO: manage splits
-          )
+          if (is.na(waning_dur)) {
+            cm_iv_set(iv,
+                      as.Date(params$date0) + start_day,
+                      as.Date(params$date0) + ifelse(is.finite(end_day),end_day,params_back$time1),
+                      fIs = rep(1-self_iso, 16),
+                      contact = 1-contact # TODO: manage splits
+            )
+          } else {
+            for (inc in (start_day:ifelse(is.finite(end_day),end_day-1,params_back$time1-1))-start_day) {
+              waning_mult <- exp(-(1/waning_dur)*inc)
+              cm_iv_set(iv,
+                        as.Date(params$date0) + start_day + inc,
+                        as.Date(params$date0) + start_day + inc + 1,
+                        fIs = rep(1-self_iso*waning_mult, 16),
+                        contact = 1-contact*waning_mult # TODO: manage splits
+              )
+            }
+          }
         })
       }
       
@@ -258,16 +162,22 @@ for (scenario_index in 1:max(scenario$scen_id)) {
     )$dynamics
     
     result <- sim[,
-                  .(value = sum(value)),
-                  keyby = .(run, t, group, compartment)
-                  ][, run := i ][, scen_id := scenario_index ]
+      .(value = sum(value)),
+      keyby = .(run, t, group, compartment)
+    ][, run := i ][, scen_id := scenario_index ]
     
     rm(params)
     rm(sim)
     
     allbind <- rbind(allbind, result)
+    prgind <- prgind + 1
+    setTxtProgressBar(prg, prgind)
   }
   
 }
+
+#' @examples 
+#' require(ggplot2)
+#' ggplot(allbind[compartment == "cases"]) + aes(t, value) + facet_grid(group ~ ., scales = "free_y") + geom_line()
 
 qsave(allbind, tarfile)

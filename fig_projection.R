@@ -9,7 +9,7 @@ suppressPackageStartupMessages({
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_projection.qs",
   "intros/intros.rds",
-  "cases.rds", "alt8_%s.png"
+  "cases.rds", "altA_%s.png"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 dt <- qread(.args[1])[

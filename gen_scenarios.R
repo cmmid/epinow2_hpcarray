@@ -2,7 +2,7 @@ suppressPackageStartupMessages({
   require(data.table)
 })
 
-.debug <- "KEN"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/fits/alt_%s.rds",
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
@@ -16,7 +16,7 @@ tariso <- gsub(".+([[:upper:]]{3})\\.rds$","\\1", .args[1])
 fit.dt <- readRDS(.args[1])
 #' intervention start date
 ts.dt <- readRDS(.args[2])
-start_date <- ts.dt[era == "post", date]
+start_date <- ts.dt[era == "pre", date+1]
 
 day0 <- readRDS(.args[3])[iso3 == tariso, min(intro.date)]
 #' target output

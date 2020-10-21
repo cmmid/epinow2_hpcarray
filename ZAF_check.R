@@ -19,8 +19,8 @@ case.dt <- readRDS(.args[1])[iso3 == tariso][, .(date, confirm = cases )]
 lims.dt <- readRDS(.args[2])[iso3 == tariso]
 lims.dt[, transitionstart := transitionstart - 3 ]
 #lims.dt[, transitionstart := as.Date("2020-03-23") ]
-lims.dt[, transitionend := transitionstart + 17 ]
-lims.dt[, interventionend := transitionend + 60 ]
+lims.dt[, transitionend := transitionstart + 14 ]
+lims.dt[, interventionend := transitionend + 30 ]
 
 #' @examples
 #' ggplot(case.dt) + aes(date, confirm) + geom_line() +
@@ -39,7 +39,7 @@ generation_time <- as.list(
     1, .(mean, mean_sd, sd, sd_sd, max=30)
 ])
 
-generation_time$mean <- 12
+generation_time$mean <- 6.790176
 
 # Set delays between infection and case report
 # (any number of delays can be specifed here)

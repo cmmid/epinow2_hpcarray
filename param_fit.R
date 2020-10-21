@@ -4,7 +4,7 @@ suppressPackageStartupMessages({
   require(qs)
 })
 
-.debug <- "KEN"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
@@ -48,131 +48,7 @@ postR0 <- R0ref[era == "post", c(lo.lo, lo, med, hi, hi.hi)]
 #' get the single parameter combination that minimizes
 #' the difference between resulting shifts from preR0 => postR0
 
-cm_calc_R0_extended <- function(
-  params,
-  umultiplier = 1,
-  cm_reds = c(0, 0, 0, 0),
-  fIsred = rep(0, 16)
-) {
-  
-  infected_states <- c("E","Ia","Ip","Is")
-  infected_states_entry <- c(1,0,0,0)
-  ages <- c(1:length(params$pop[[1]]$size))
-  pops <- sapply(params$pop, "[[", "name")
-  
-  duration <- function(distributed_times, tstep=params$time_step){
-    #calculates the mean of the distribution
-    sum(distributed_times * seq(0, by=tstep, length.out = length(distributed_times)))
-  }
-  
-  #reduced transmission matrix
-  #transmission matrix T times inverse of auxiliary matrix E
-  transmission_reduced <- matrix(
-    0,
-    sum(infected_states_entry)*length(ages)*length(pops),
-    length(infected_states)*length(ages)*length(pops)
-  )
-  
-  #reduced transition matrix
-  #negative of inversed transition matrix Sigma times auxilliary matrix E
-  transition_reduced <- matrix(
-    0,
-    length(infected_states)*length(ages)*length(pops),
-    sum(infected_states_entry)*length(ages)*length(pops)
-  )
-  
-  for(p1 in 1:length(params$pop)){
-    cm = Reduce('+', mapply(
-      function(c, m, reduction) c * m * (1-reduction),
-      params$pop[[p1]]$contact,
-      params$pop[[p1]]$matrices,
-      cm_reds,
-      SIMPLIFY = F)
-    )
-    for(a1 in 1:length(params$pop[[p1]]$size)){
-      for(p2 in 1:length(params$pop)){
-        for(a2 in 1:length(params$pop[[p2]]$size)){
-          for(s in 1:length(infected_states)){
-            sj <- ti <- (p1-1)*length(params$pop[[p1]]$size)+a1
-            si <- tj <- (p2-1)*length(params$pop[[p2]]$size)*length(infected_states)+(a2-1)*length(infected_states)+s
-            
-            trates <- c(
-              "E" = 0,
-              "Ia" =  params$pop[[p1]]$u[a1] * umultiplier *
-                ifelse(
-                  params$pop[[p1]]$size[a1] != 0,
-                  params$pop[[p2]]$size[a2]/params$pop[[p1]]$size[a1],
-                  0
-                ) *
-                #adjust beta if population size is scaled down
-                # as probability with which people are contacted will be scale down if there
-                # are less people of that age
-                ifelse(
-                  !is.null(params$pop[[p2]]$size_original),
-                  params$pop[[p2]]$size[a2]/params$pop[[p2]]$size_original[a2],
-                  1
-                ) *
-                cm[a1,a2] * 
-                params$pop[[p2]]$fIa[a2] *
-                params$travel[p1,p2] *
-                ifelse(p1==p2,1,params$pop[[p2]]$tau[a2]),
-              "Ip" = params$pop[[p1]]$u[a1] * umultiplier *
-                ifelse(
-                  params$pop[[p1]]$size[a1] != 0,
-                  params$pop[[p2]]$size[a2]/params$pop[[p1]]$size[a1],
-                  0
-                ) *
-                #adjust beta if population size is scaled down
-                ifelse(
-                  !is.null(params$pop[[p2]]$size_original),
-                  params$pop[[p2]]$size[a2]/params$pop[[p2]]$size_original[a2],
-                  1
-                ) *
-                cm[a1,a2] * 
-                params$pop[[p2]]$fIp[a2] *
-                params$travel[p1,p2] *
-                ifelse(p1==p2,1,params$pop[[p2]]$tau[a2]),
-              "Is" = params$pop[[p1]]$u[a1] * umultiplier *
-                ifelse(
-                  params$pop[[p1]]$size[a1] != 0,
-                  params$pop[[p2]]$size[a2]/params$pop[[p1]]$size[a1],
-                  0
-                ) *
-                #adjust beta if population size is scaled down
-                ifelse(
-                  !is.null(params$pop[[p2]]$size_original),
-                  params$pop[[p2]]$size[a2]/params$pop[[p2]]$size_original[a2],
-                  1
-                ) *
-                cm[a1,a2] * 
-                params$pop[[p2]]$fIs[a2] * (1-fIsred)[a2] *
-                params$travel[p1,p2] *
-                ifelse(p1==p2,1,params$pop[[p2]]$tau[a2])
-            )
-            
-            #only applicable within one age
-            if(p1==p2 & a1==a2){
-              srates <- c(
-                "E" = duration(params$pop[[p1]]$dE),
-                "Ia" = (1-params$pop[[p1]]$y[a1])*duration(params$pop[[p1]]$dIa),
-                "Ip" = params$pop[[p1]]$y[a1]*duration(params$pop[[p1]]$dIp),
-                "Is" = params$pop[[p1]]$y[a1]*duration(params$pop[[p1]]$dIs)
-              )  
-            } else ( srates <- rep(0, 4) )
-            
-            transmission_reduced[ti,tj] <- trates[s]
-            transition_reduced[si,sj] <- srates[s]
-          }
-        }
-      }
-    }
-  }
-  k <- transmission_reduced %*% transition_reduced
-  #if(is.complex(eigen(k)$values)){
-  #  warning("Eigenvalue is complex")
-  #}
-  return(max(Re(eigen(k)$values)))
-}
+load("NGM.rda")
 
 scens <- data.table(
   expand.grid(
@@ -201,10 +77,9 @@ R0_recalc <- function(ps, umul, poppars, ls_cats) {
 #  cmr[1] <- arglist$large*arglist$home
   cmr[1+which(ls_cats == "large")] <- arglist$large
   cmr[1+which(ls_cats == "small")] <- arglist$large*arglist$smallfact
-  cm_calc_R0_extended(
-    poppars, umul, cmr,
-    fIsred = rep(arglist$large*arglist$symptfact, 16)
-  )
+  cm_ngm(
+    poppars, umul, cmr, arglist$large*arglist$symptfact
+  )$R0
 }
 
 cost_fun <- function(ps, ls_cats) {
@@ -235,7 +110,7 @@ prg <- txtProgressBar(max = scens[,.N], style = 3)
 
 fitfun <- function(poppars, preR, postR, scenarios) {
   
-  ured <- preR / cm_calc_R0_extended(poppars)
+  ured <- preR / cm_ngm(poppars)$R0
   
   scenarios[,{
     optpars <- c(large = refbaseline, symptfact = factbaseline)
