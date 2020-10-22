@@ -1,16 +1,20 @@
-require(EpiNow2)
-require(data.table)
+suppressPackageStartupMessages({
+  require(EpiNow2)
+  require(data.table)
+  require(qs)
+})
 
 .debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
-  "cases.rds", "rt_bounds.rds", "%s",
+  "cases.rds", "rt_bounds.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/contact_matrices.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/covidm_fit_yu.qs",
+  "%s",
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/result.rds"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
-tariso <- .args[3]
+tariso <- .args[6]
 
 case.dt <- readRDS(.args[1])[iso3 == tariso][, .(date, confirm = cases )]
 fill.case <- case.dt[
@@ -25,7 +29,7 @@ lims.dt[, transitionstart := transitionstart - 3 ]
 lims.dt[, transitionend := transitionstart + 14 ]
 lims.dt[, interventionend := transitionend + 30 ]
 
-contact_matrices <- readRDS(.args[4])
+contact_matrices <- readRDS(.args[3])
 
 refcm <- if (is.null(names(contact_matrices))) { 
   contact_matrices <- lapply(Reduce(function(l, r) {
@@ -34,9 +38,9 @@ refcm <- if (is.null(names(contact_matrices))) {
 } else { contact_matrices }
 names(refcm) <- gsub("cm_","",names(refcm))
 
-params <- readRDS(.args[5])[[1]]
+params <- readRDS(.args[4])[[1]]
 
-yu_fits <- qread(.args[6])[order(ll)]
+yu_fits <- qread(.args[5])[order(ll)]
 yu_fits[, eqs := (1:.N)/.N ]
 #' using the median yu fits
 medyu <- yu_fits[which.max(eqs > 0.5)]
