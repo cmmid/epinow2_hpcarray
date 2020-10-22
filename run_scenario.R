@@ -53,7 +53,7 @@ tariso <- gsub(".+([[:upper:]]{3})\\.rds$","\\1", .args[1])
 
 intros <- readRDS(.args[6])[iso3 == tariso, Reduce(c, mapply(rep, intro.day, intros, SIMPLIFY = FALSE))]
 urbfrac <- readRDS(.args[7])[iso3 == tariso, value / 100]
-urbfrac <- 1
+#urbfrac <- 1
 
 #urbfrac <- if (.debug == "NGA") .51 else 1
 
@@ -74,13 +74,6 @@ params$pop <- lapply(
   params$pop,
   function(x){
     x$matrices <- refcm
-    return(x)
-  }
-)
-
-params$pop <- lapply(
-  params$pop,
-  function(x){
     x$y <- ys
     x$u <- us
     return(x)

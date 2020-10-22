@@ -141,19 +141,6 @@ early_reported_cases[, breakpoint := era %in% c("window", "censor") ]
 #' )
 
 rebreak <- copy(early_reported_cases)
-
-# rebreak[era %in% c("window","introduction"), breakpoint := FALSE]
-# rebreak[era %in% c("window", "pre"), era := "post"]
-# rebreak[era == "introduction", era := "pre"]
-# 
-# cntr <- as.Date(lims.dt$transitionstart) - shft + 4
-# 
-# rebreak[
-#   between(date, cntr-4, cntr+3),
-#   era := "window"
-# ]
-# rebreak[date < cntr - 4, era := "pre" ]
-# rebreak[era == "window", breakpoint := TRUE]
 rebreak[cumsum(confirm) <= 10, era := "introduction"]
 rebreak[era == "introduction", breakpoint := TRUE ]
 

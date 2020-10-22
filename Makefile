@@ -52,7 +52,7 @@ ${INDIR}/interventions.rds: interventions.R ${INDIR}/rawinterventions.csv
 ${INDIR}/rt_bounds.rds: rt_bounds.R $(addprefix ${INDIR}/,cases.rds interventions.rds)
 	${R}
 
-${OUTDIR}/%/result.rds: compute.R $(addprefix ${INDIR}/,cases.rds rt_bounds.rds)
+${OUTDIR}/%/result.rds: compute.R $(addprefix ${INDIR}/,cases.rds rt_bounds.rds) ${OTHDIR}/%/contact_matrices.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/covidm_fit_yu.qs
 	mkdir -p $(@D)
 	Rscript $(filter-out FORCE,$^) $* ${NCORES} $@
 
@@ -64,6 +64,9 @@ ${OUTDIR}/fits/%.rds: param_fit.R ${OUTDIR}/%/result.rds ${OTHDIR}/%/params_set.
 
 intros/intros.rds:
 	cd $(@D) && $(MAKE) -C $(@F)
+
+NGM.rda: NGM.R
+	${R}
 
 ${OUTDIR}/scens/%.rds: gen_scenarios.R ${OUTDIR}/fits/%.rds ${OUTDIR}/%/result.rds intros/intros.rds
 	${R}
@@ -86,7 +89,7 @@ ${OUTDIR}/SI_fig_int_distro.png: SI_fig_int_distro.R $(addprefix ${INDIR}/,inter
 
 sifigs: ${OUTDIR}/SI_fig_int_distro.png
 
-setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv rawinterventions.csv interventions.rds rt_bounds.rds)
+setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv rawinterventions.csv interventions.rds rt_bounds.rds) NGM.rda
 
 ALLISOS ?= $(shell cat ${INDIR}/iso3.csv)
 

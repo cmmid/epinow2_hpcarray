@@ -1,21 +1,68 @@
 require(EpiNow2)
 require(data.table)
 
-.debug <- "SWE"
+.debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
-  "cases.rds", "rt_bounds.rds", "%s", "2", "res/%s/result.rds"
+  "cases.rds", "rt_bounds.rds", "%s",
+  "~/Dropbox/covidm_reports/hpc_inputs/%s/contact_matrices.rds",
+  "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
+  "~/Dropbox/covidm_reports/hpc_inputs/covidm_fit_yu.qs",
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/result.rds"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
-iso <- .args[3]
+tariso <- .args[3]
 
-bounds <- as.list(readRDS(.args[2])[
-  iso3 == iso
-])
+case.dt <- readRDS(.args[1])[iso3 == tariso][, .(date, confirm = cases )]
+fill.case <- case.dt[
+  case.dt[, .(date = seq(min(date),max(date),by="day"))],
+  on=.(date),
+  .(date, confirm = fifelse(is.na(confirm), 0, confirm))
+  ]
+
+lims.dt <- readRDS(.args[2])[iso3 == tariso]
+lims.dt[, transitionstart := transitionstart - 3 ]
+#lims.dt[, transitionstart := as.Date("2020-03-23") ]
+lims.dt[, transitionend := transitionstart + 14 ]
+lims.dt[, interventionend := transitionend + 30 ]
+
+contact_matrices <- readRDS(.args[4])
+
+refcm <- if (is.null(names(contact_matrices))) { 
+  contact_matrices <- lapply(Reduce(function(l, r) {
+    mapply("+", l, r, SIMPLIFY = FALSE)
+  }, contact_matrices), function(cm) cm/length(contact_matrices))
+} else { contact_matrices }
+names(refcm) <- gsub("cm_","",names(refcm))
+
+params <- readRDS(.args[5])[[1]]
+
+yu_fits <- qread(.args[6])[order(ll)]
+yu_fits[, eqs := (1:.N)/.N ]
+#' using the median yu fits
+medyu <- yu_fits[which.max(eqs > 0.5)]
+yref <- unname(as.matrix(medyu[, .SD, .SDcols = grep("y_",colnames(medyu))]))
+uref <- unname(as.matrix(medyu[, .SD, .SDcols = grep("u_",colnames(medyu))]))
+ys <- rep(yref[1, ], each = 2)
+us <- rep(uref[1, ], each = 2)
+
+params$pop <- lapply(
+  params$pop,
+  function(x){
+    x$matrices <- refcm
+    x$y <- ys
+    x$u <- us
+    return(x)
+  }
+)
+
+load("NGM.rda")
 
 # Set up example generation time
 generation_time <- as.list(EpiNow2::covid_generation_times[1,
   .(mean, mean_sd, sd, sd_sd, max=30)
 ])
+
+generation_time$mean <- cm_generation_time(params)
 
 # Set delays between infection and case report
 # (any number of delays can be specifed here)
@@ -31,86 +78,47 @@ reporting_delay <- list(
 
 # additional time to include for algorithm
 est.window <- 30
-crs <- as.integer(.args[4])
-smps <- 1e4
+smps <- 2e3
+crs <- 4
 
-if (length(bounds$del) && !is.na(bounds$del) && (bounds$del > 0)) {
-  
-  reported_cases <- readRDS(.args[1])[
-    (iso3 == iso) & (date <= bounds$interventionend + est.window)
-  ][, .(date, confirm = cases )]
-  
-  reported_cases[, era := fifelse(bounds$del > 7, "pre", "short")  ]
-  reported_cases[date >= bounds$transitionstart, era := "window" ]
-  reported_cases[date > bounds$transitionend, era := "post" ]
-  reported_cases[date >= bounds$interventionend, era := "censor" ]
-  
-  
-  # Add breakpoints
-  reported_cases[,
-    breakpoint := era %in% c("window", "censor")
-  ]
-  
-  # Run model with breakpoints but otherwise static Rt
-  # This formulation may increase the apparent effect of
-  # the breakpoint but needs to be tested using
-  # model fit criteria (i.e LFO).
-  fbkp <- estimate_infections(
-    reported_cases, family = "negbin",
-    generation_time = generation_time,
-    delays = list(incubation_period, reporting_delay),
-    samples = smps, warmup = smps*0.1, cores = crs,
-    chains = crs, estimate_breakpoints = TRUE, fixed = TRUE, horizon = 0,
-    verbose = FALSE, return_fit = TRUE
-  )$samples[variable == "R", .(value), by=.(sample, date)]
-  
-  results <- fbkp[
-    between(date, bounds$transitionstart-1, bounds$transitionend+1)
+early_reported_cases <- case.dt[date <= (lims.dt$interventionend + est.window)]
+with(lims.dt,{
+  early_reported_cases[, era := fifelse(del > 7, "pre", "short")  ]
+  early_reported_cases[date >= transitionstart, era := "window" ]
+  early_reported_cases[date > transitionend, era := "post" ]
+  early_reported_cases[date >= interventionend, era := "censor" ]
+})
+
+# Add breakpoints
+early_reported_cases[, breakpoint := era %in% c("window", "censor") ]
+rebreak <- copy(early_reported_cases)
+rebreak[cumsum(confirm) <= 10, era := "introduction"]
+rebreak[era == "introduction", breakpoint := TRUE ]
+
+re.est <- estimate_infections(
+  rebreak, family = "negbin",
+  generation_time = generation_time,
+  delays = list(incubation_period, reporting_delay),
+  samples = smps, cores = crs,
+  chains = crs,
+  estimate_breakpoints = TRUE,
+  fixed = TRUE, horizon = 0,
+  verbose = TRUE, return_fit = TRUE
+)$samples[variable == "R", .(value), by=.(sample, date)]
+
+results <- re.est[
+  between(date, lims.dt$transitionstart-1, lims.dt$transitionend+1)
   ][, {
     qs <- quantile(value, probs = c(0.025, 0.25, 0.5, 0.75, 0.975))
     names(qs) <- c("lo.lo","lo","med","hi","hi.hi")
     as.list(qs)
   }, keyby = .(date)][
-    reported_cases[,
-      .(date, ccases = cumsum(confirm), era)
-    ][between(date, bounds$transitionstart-1, bounds$transitionend+1)],
+    rebreak[,
+            .(date, ccases = cumsum(confirm), era)
+            ][
+              between(date, lims.dt$transitionstart-1, lims.dt$transitionend+1)
+              ],
     on=.(date)
-  ]
-  
-} else {
-  
-  reported_cases <- readRDS(.args[1])[
-    (iso3 == iso)
-  ][1:(2*est.window)][, .(date, confirm = cases, breakpoint = FALSE )]
- 
-  reported_cases[, era := "censor" ]
-  reported_cases[1:est.window, era := "post" ]
-
-   
-  fbkp <- estimate_infections(
-    reported_cases, family = "negbin",
-    generation_time = generation_time,
-    delays = list(incubation_period, reporting_delay),
-    samples = smps, warmup = smps*0.1, cores = crs,
-    chains = crs, fixed = TRUE, horizon = 0,
-    verbose = FALSE, return_fit = TRUE
-  )$samples[variable == "R", .(value), by=.(sample, date)]
-
-  ref <- reported_cases[,
-    .(date, ccases = cumsum(confirm), era)
-  ][est.window]
-  
-  results <- fbkp[
-    date == ref$date
-  ][,{
-    qs <- quantile(value, probs = c(0.025, 0.25, 0.5, 0.75, 0.975))
-    names(qs) <- c("lo.lo","lo","med","hi","hi.hi")
-    as.list(qs)
-  }, keyby = .(date)][
-    ref,
-    on=.(date)
-  ]
-  
-}
+    ]
 
 saveRDS(results, tail(.args, 1))

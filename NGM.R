@@ -171,7 +171,7 @@ cm_generation_time <- function(cm_params, ...) {
   res <- cm_ngm(cm_params, ...)
   ws <- cm_ss_age_distro(res$ss)
   clinfrac <- cm_params$pop[[1]]$y
-  dur <- function(dX) weighted.mean((seq_along(dX)-1)*ts, dX)
+  dur <- function(dX) weighted.mean((seq_along(dX)-1)*cm_params$time_step, dX)
   durE <- dur(cm_params$pop[[1]]$dE)
   durIa <- dur(cm_params$pop[[1]]$dIa)
   durIp <- dur(cm_params$pop[[1]]$dIp)
@@ -187,7 +187,7 @@ cm_generation_time <- function(cm_params, ...) {
     )
     ave_gen <- ave_gen + ws[a]*sum((c(durIa,durIp,durIp+durIs)+durE)*outws)/sum(outws)
   }
-  
+  ave_gen
 }
 
-save(cm_ngm, file = tail(.args, 1))
+save(list=ls(), file = tail(.args, 1))
