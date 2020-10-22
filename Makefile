@@ -62,7 +62,7 @@ ${OUTDIR}/eligible.csv: params_filter.R | ${OUTDIR}
 ${OUTDIR}/fits/%.rds: param_fit.R ${OUTDIR}/%/result.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/%/contact_matrices.rds ${OTHDIR}/covidm_fit_yu.qs
 	${R}
 
-intros/intros.rds:
+intros/intros.rds intros/urban.rds:
 	cd $(@D) && $(MAKE) -C $(@F)
 
 NGM.rda: NGM.R
@@ -89,7 +89,7 @@ ${OUTDIR}/SI_fig_int_distro.png: SI_fig_int_distro.R $(addprefix ${INDIR}/,inter
 
 sifigs: ${OUTDIR}/SI_fig_int_distro.png
 
-setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv rawinterventions.csv interventions.rds rt_bounds.rds) NGM.rda
+setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv rawinterventions.csv interventions.rds rt_bounds.rds) NGM.rda intros/intros.rds intros/urban.rds
 
 ALLISOS ?= $(shell cat ${INDIR}/iso3.csv)
 
