@@ -73,7 +73,7 @@ ${OUTDIR}/scens/%.rds: gen_scenarios.R ${OUTDIR}/fits/%.rds ${OUTDIR}/%/result.r
 
 testscen: ${OUTDIR}/scens/ZAF.rds
 
-${OUTDIR}/%/projection.qs: run_scenario.R ${OUTDIR}/scens/%.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/covidm_fit_yu.qs ${OUTDIR}/%/result.rds ${OTHDIR}/%/contact_matrices.rds | ${COVIDMPATH}
+${OUTDIR}/%/projection.qs: run_scenario.R ${OUTDIR}/scens/%.rds ${OTHDIR}/%/params_set.rds ${OTHDIR}/covidm_fit_yu.qs ${OUTDIR}/%/result.rds ${OTHDIR}/%/contact_matrices.rds intros/intros.rds intros/urban.rds | ${COVIDMPATH}
 	Rscript $^ $| $@
 
 testfit: ${OUTDIR}/fits/ZAF.rds
