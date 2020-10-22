@@ -79,6 +79,8 @@ ${OUTDIR}/%/projection.qs: run_scenario.R ${OUTDIR}/scens/%.rds ${OTHDIR}/%/para
 testfit: ${OUTDIR}/fits/ZAF.rds ${OUTDIR}/fits/KEN.rds ${OUTDIR}/fits/AFG.rds
 testproj: ${OUTDIR}/ZAF/projection.qs
 
+.PRECIOUS: ${OUTDIR}/%/result.rds ${OUTDIR}/fits/%.rds ${OUTDIR}/scens/%.rds ${OUTDIR}/%/projection.qs
+
 SLURMTEMP ?= slurm.template
 
 ${OUTDIR}/jobs.slurm: slurm.R ${SLURMTEMP} ${INDIR}/iso3.csv | ${OUTDIR}
