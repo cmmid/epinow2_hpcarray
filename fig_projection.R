@@ -8,8 +8,9 @@ suppressPackageStartupMessages({
 .debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_projection.qs",
+#  "~/Downloads/task_20201022_082900_AD_EP_epinow2-hpcarray-preliminary_output_UKO/%s/projection.qs",
   "intros/intros.rds",
-  "cases.rds", "altA_%s.png"
+  "cases.rds", "altZ_%s.png"
 ), .debug) else commandArgs(trailingOnly = TRUE)
 
 dt <- qread(.args[1])[

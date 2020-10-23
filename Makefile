@@ -94,5 +94,14 @@ sifigs: ${OUTDIR}/SI_fig_int_distro.png
 setup: ${INDIR} ${OUTDIR} $(addprefix ${INDIR}/,cases.rds iso3.csv rawinterventions.csv interventions.rds rt_bounds.rds) NGM.rda intros/intros.rds intros/urban.rds
 
 ALLISOS ?= $(shell cat ${INDIR}/iso3.csv)
+FIGISOS := $(shell cd ~/Downloads/task_20201022_082900_AD_EP_epinow2-hpcarray-preliminary_output_UKO && ls)
+
+${OUTDIR}/figs:
+	mkdir -p $@
+
+${OUTDIR}/figs/%.png: fig_projection.R ~/Downloads/task_20201022_082900_AD_EP_epinow2-hpcarray-preliminary_output_UKO/%/projection.qs intros/intros.rds cases.rds | ${OUTDIR}/figs
+	Rscript $^ $| $@
+
+checkiso: $(patsubst %,${OUTDIR}/figs/%.png,${FIGISOS})
 
 test: $(patsubst %,${OUTDIR}/%/result.rds,${ALLISOS})

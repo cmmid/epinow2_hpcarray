@@ -6,7 +6,7 @@ suppressPackageStartupMessages({
 
 .debug <- "ZAF"
 .args <- if (interactive()) sprintf(c(
-  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/result.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/contact_matrices.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/covidm_fit_yu.qs",

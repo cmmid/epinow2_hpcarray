@@ -8,7 +8,7 @@ suppressPackageStartupMessages({
   "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/scens/alt_%s.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/params_set.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/covidm_fit_yu.qs",
-  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/alt_result.rds",
+  "~/Dropbox/Covid_LMIC/All_Africa_paper/r0_fitting/%s/result.rds",
   "~/Dropbox/covidm_reports/hpc_inputs/%s/contact_matrices.rds",
   "intros/intros.rds",
   "intros/urban.rds",
@@ -126,12 +126,12 @@ for (scenario_index in 1:max(scenario$scen_id)) {
           if (is.na(waning_dur)) {
             cm_iv_set(iv,
                       as.Date(params$date0) + start_day,
-                      as.Date(params$date0) + ifelse(is.finite(end_day),end_day,params_back$time1),
+                      as.Date(params$date0) + ifelse(is.finite(end_day),end_day,params$time1),
                       fIs = rep(1-self_iso, 16),
                       contact = 1-contact # TODO: manage splits
             )
           } else {
-            for (inc in (start_day:ifelse(is.finite(end_day),end_day-1,params_back$time1-1))-start_day) {
+            for (inc in (start_day:ifelse(is.finite(end_day),end_day-1,params$time1-1))-start_day) {
               waning_mult <- exp(-(1/waning_dur)*inc)
               cm_iv_set(iv,
                         as.Date(params$date0) + start_day + inc,
