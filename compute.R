@@ -24,7 +24,7 @@ fill.case <- case.dt[
   ]
 
 lims.dt <- readRDS(.args[2])[iso3 == tariso]
-lims.dt[, transitionstart := transitionstart - 3 ]
+lims.dt[, transitionstart := transitionstart - 5 ]
 #lims.dt[, transitionstart := as.Date("2020-03-23") ]
 lims.dt[, transitionend := transitionstart + 14 ]
 lims.dt[, interventionend := transitionend + 30 ]
@@ -66,7 +66,7 @@ generation_time <- as.list(EpiNow2::covid_generation_times[1,
   .(mean, mean_sd, sd, sd_sd, max=30)
 ])
 
-generation_time$mean <- cm_generation_time(params)
+generation_time$mean <- unname(cm_generation_time(params))
 
 # Set delays between infection and case report
 # (any number of delays can be specifed here)
