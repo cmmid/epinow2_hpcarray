@@ -68,11 +68,16 @@ generation_time <- as.list(EpiNow2::covid_generation_times[1,
 
 generation_time$mean <- cm_generation_time(params)
 
+
+
 # Set delays between infection and case report
 # (any number of delays can be specifed here)
 incubation_period <- as.list(EpiNow2::covid_incubation_period[1,
   .(mean, mean_sd, sd, sd_sd, max=30)
 ])
+# replace mean & sd here with what go into rlnorm meanlog, sdlog
+# which is not mean(data), sd(data)
+
 
 reporting_delay <- list(
   mean = log(5), mean_sd = log(2),

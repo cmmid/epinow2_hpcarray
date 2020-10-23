@@ -39,6 +39,10 @@ allage.dt <- dt[,
 ]
 allage.dt[order(date), cvalue := cumsum(value), by=.(scen_id, run, compartment) ]
 
+#' drop a line for intervention turn on
+#' area for ignore window
+#' area for end of fitting period
+
 p <- ggplot(allage.dt[
   compartment %in% c("cases","subclinical","deaths")
 ][run == 3]) +
